@@ -10,7 +10,10 @@ import {
   LogOut, 
   TrendingUp, 
   DollarSign, 
-  Briefcase 
+  Briefcase,
+  Calendar,
+  BarChart3,
+  Users2
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -29,8 +32,12 @@ export default function Sidebar({ role }: { role: 'admin' | 'owner' }) {
 
   const ownerLinks = [
     { href: "/owner/dashboard", label: "Overview", icon: TrendingUp },
-    { href: "/owner/financials", label: "Financials", icon: DollarSign },
-    { href: "/owner/settings", label: "Global Settings", icon: Settings },
+    { href: "/owner/staff", label: "Staff", icon: Users },
+    { href: "/owner/services", label: "Services", icon: Briefcase },
+    { href: "/owner/financial-reports", label: "Reports", icon: BarChart3 },
+    { href: "/owner/customers", label: "Customers", icon: Users2 },
+    { href: "/owner/calendar", label: "Schedule", icon: Calendar },
+    { href: "/owner/settings", label: "Settings", icon: Settings },
   ];
 
   const links = role === 'owner' ? ownerLinks : adminLinks;

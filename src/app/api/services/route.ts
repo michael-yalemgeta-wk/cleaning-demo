@@ -46,3 +46,15 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: 'Failed to update service' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json();
+    let services = await getServices();
+    services = services.filter((s: any) => s.id !== body.id);
+    await saveServices(services);
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    return NextResponse.json({ error: 'Failed to delete service' }, { status: 500 });
+  }
+}
