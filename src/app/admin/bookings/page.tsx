@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Clock, LogOut, Plus, UserPlus } from "lucide-react";
+import { Check, Clock, LogOut, Plus, UserPlus, Search, AlertCircle } from "lucide-react";
 
 type Booking = {
   id: string;
@@ -13,6 +13,8 @@ type Booking = {
   email: string;
   address: string;
   status: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
   assignedTo?: string;
   tasks?: string[];
   createdAt: string;
@@ -25,6 +27,8 @@ export default function BookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", description: "" });
+  const [searchEmail, setSearchEmail] = useState("");
+  const [filteredBookings, setFilteredBookings] = useState<Booking[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -42,6 +46,7 @@ export default function BookingsPage() {
       const staffRes = await fetch("/api/staff");
       const data = await bookingsRes.json();
       setBookings(data.reverse());
+      setFilteredBookings(data.reverse());
       setStaff(await staffRes.json());
     } catch (err) {
       console.error(err);
@@ -50,22 +55,56 @@ export default function BookingsPage() {
     }
   };
 
+  const handleSearch = (email: string) => {
+    setSearchEmail(email);
+    if (email.trim() === "") {
+      setFilteredBookings(bookings);
+    } else {
+      setFilteredBookings(bookings.filter(b => b.email.toLowerCase().includes(email.toLowerCase())));
+    }
+  };
+
   const updateStatus = async (id: string, status: string) => {
-    await fetch("/api/bookings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status }),
-    });
-    fetchData();
+    try {
+      await fetch("/api/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      alert("Failed to update booking status");
+    }
+  };
+
+  const togglePaymentStatus = async (id: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'Paid' ? 'Pending' : 'Paid';
+    try {
+      await fetch("/api/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, paymentStatus: newStatus }),
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to toggle payment status:", err);
+      alert("Failed to update payment status");
+    }
   };
 
   const assignStaff = async (bookingId: string, staffId: string) => {
-    await fetch("/api/bookings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: bookingId, assignedTo: staffId, status: "In Progress" }),
-    });
-    fetchData();
+    try {
+      await fetch("/api/bookings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: bookingId, assignedTo: staffId, status: "Confirmed" }),
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to assign staff:", err);
+      alert("Failed to assign staff");
+    }
   };
 
   const addTask = async (e: React.FormEvent) => {
@@ -101,37 +140,67 @@ export default function BookingsPage() {
     <div className="section container">
       <h1 className="mb-lg">Booking Management</h1>
 
+      {/* Search by Email */}
+      <div className="card mb-lg">
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <Search size={18} />
+          <input
+            type="email"
+            placeholder="Search bookings by email..."
+            value={searchEmail}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={{ flex: 1 }}
+          />
+        </div>
+      </div>
+
       <div className="card" style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
               <th style={{ padding: '1rem' }}>Status</th>
+              <th style={{ padding: '1rem' }}>Payment</th>
               <th style={{ padding: '1rem' }}>Date/Time</th>
-              <th style={{ padding: '1rem' }}>Customer</th>
+              <th style={{ padding: '1rem' }}>Customer (Email)</th>
               <th style={{ padding: '1rem' }}>Service</th>
               <th style={{ padding: '1rem' }}>Assigned To</th>
               <th style={{ padding: '1rem' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {bookings.length === 0 ? (
+            {filteredBookings.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-center" style={{ padding: '2rem', color: 'var(--text-muted)' }}>No bookings found.</td>
+                <td colSpan={7} className="text-center" style={{ padding: '2rem', color: 'var(--text-muted)' }}>No bookings found.</td>
               </tr>
             ) : (
-              bookings.map((booking) => (
+              filteredBookings.map((booking) => (
                 <tr key={booking.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '1rem' }}>
-                    <span style={{ 
-                      padding: '0.25rem 0.75rem', 
-                      borderRadius: '1rem', 
-                      fontSize: '0.875rem',
-                      background: booking.status === 'Confirmed' ? '#dcfce7' : booking.status === 'Completed' ? '#e2e8f0' : booking.status === 'In Progress' ? '#fef9c3' : '#fef3c7',
-                      color: booking.status === 'Confirmed' ? '#166534' : booking.status === 'Completed' ? '#475569' : booking.status === 'In Progress' ? '#854d0e' : '#92400e',
-                      fontWeight: 'bold'
-                    }}>
-                      {booking.status}
-                    </span>
+                    <select 
+                      value={booking.status} 
+                      onChange={(e) => updateStatus(booking.id, e.target.value)}
+                      style={{ 
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontSize: '0.875rem',
+                        fontWeight: 'bold',
+                        border: '1px solid var(--border)'
+                      }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="On Way">On Way</option>
+                      <option value="Done">Done</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </td>
+                  <td style={{ padding: '1rem' }}>
+                    <div style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                      <strong>{booking.paymentStatus || 'Pending'}</strong>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {booking.paymentMethod === 'cash' ? 'Cash on Arrival' : booking.paymentMethod || 'N/A'}
+                    </div>
                   </td>
                   <td style={{ padding: '1rem' }}>
                     <div>{booking.date}</div>
@@ -159,16 +228,6 @@ export default function BookingsPage() {
                   </td>
                   <td style={{ padding: '1rem' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {booking.status === 'Pending' && (
-                        <button 
-                          onClick={() => updateStatus(booking.id, 'Confirmed')} 
-                          className="btn btn-primary" 
-                          style={{ padding: '0.5rem', fontSize: '0.875rem' }}
-                          title="Confirm"
-                        >
-                          <Check size={16} />
-                        </button>
-                      )}
                       {booking.assignedTo && booking.status !== 'Completed' && (
                         <button 
                           onClick={() => {
@@ -182,6 +241,14 @@ export default function BookingsPage() {
                           <Plus size={16} />
                         </button>
                       )}
+                      <button 
+                        onClick={() => togglePaymentStatus(booking.id, booking.paymentStatus || 'Pending')}
+                        className="btn btn-secondary" 
+                        style={{ padding: '0.5rem', fontSize: '0.875rem' }}
+                        title="Toggle Payment Status"
+                      >
+                        {(booking.paymentStatus || 'Pending') === 'Paid' ? '✓ Paid' : 'Mark Paid'}
+                      </button>
                     </div>
                   </td>
                 </tr>

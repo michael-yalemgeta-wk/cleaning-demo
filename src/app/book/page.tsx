@@ -19,10 +19,15 @@ function BookingForm() {
     phone: "",
     address: "",
     notes: "",
-    paymentMethod: "credit_card"
+    paymentMethod: "cash"
   });
   const [services, setServices] = useState<any[]>([]);
-  const [settings, setSettings] = useState<any>({ taxRate: 0.08 });
+  const [settings, setSettings] = useState<any>({ 
+    taxRate: 0.08,
+    paymentMethods: { cash: true, card: false, online: false, bank_transfer: false },
+    disabledDays: [],
+    notificationSettings: { sameDay: true, emailOnBooking: true }
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -168,11 +173,27 @@ function BookingForm() {
               <h2 className="mb-md flex items-center gap-sm"><Calendar /> Select Date & Time</h2>
               <div className="form-group">
                 <label>Date</label>
-                <input type="date" name="date" required value={formData.date} onChange={handleInputChange} min={new Date().toISOString().split('T')[0]} />
+                <input 
+                  type="date" 
+                  name="date" 
+                  required 
+                  value={formData.date} 
+                  onChange={handleInputChange} 
+                  min={new Date().toISOString().split('T')[0]}
+                  disabled={settings.disabledDays.includes(formData.date)}
+                  style={{
+                    backgroundColor: settings.disabledDays.includes(formData.date) ? '#ffe0e0' : 'transparent'
+                  }}
+                />
+                {settings.disabledDays.includes(formData.date) && (
+                  <p style={{ color: 'var(--error)', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+                    This date is not available for booking
+                  </p>
+                )}
               </div>
               <div className="form-group mb-md">
                 <label>Time</label>
-                <select name="time" required value={formData.time} onChange={handleInputChange}>
+                <select name="time" required value={formData.time} onChange={handleInputChange} disabled={settings.disabledDays.includes(formData.date)}>
                   <option value="">Select a time</option>
                   <option value="08:00">8:00 AM</option>
                   <option value="10:00">10:00 AM</option>
@@ -183,7 +204,7 @@ function BookingForm() {
               </div>
               <div className="flex justify-between">
                 <button type="button" onClick={() => setStep(1)} className="btn btn-secondary">Back</button>
-                <button type="button" onClick={() => setStep(3)} disabled={!formData.date || !formData.time} className="btn btn-primary">Next</button>
+                <button type="button" onClick={() => setStep(3)} disabled={!formData.date || !formData.time || settings.disabledDays.includes(formData.date)} className="btn btn-primary">Next</button>
               </div>
             </div>
           )}
@@ -246,9 +267,10 @@ function BookingForm() {
               <div className="form-group mb-lg">
                 <label>Payment Method *</label>
                 <select name="paymentMethod" value={formData.paymentMethod} onChange={handleInputChange} required>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="paypal">PayPal</option>
-                  <option value="cash">Cash on Arrival</option>
+                  {settings.paymentMethods?.cash && <option value="cash">Cash on Arrival</option>}
+                  {settings.paymentMethods?.card && <option value="card">Credit Card</option>}
+                  {settings.paymentMethods?.online && <option value="online">Online Payment</option>}
+                  {settings.paymentMethods?.bank_transfer && <option value="bank_transfer">Bank Transfer</option>}
                 </select>
               </div>
 

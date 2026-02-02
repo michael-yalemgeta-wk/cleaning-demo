@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Key } from "lucide-react";
+import { Plus, Key, Trash2, Edit2 } from "lucide-react";
 
 export default function StaffPage() {
   const [staff, setStaff] = useState<any[]>([]);
@@ -58,6 +58,37 @@ export default function StaffPage() {
     return workers.find(w => w.staffId === staffId);
   };
 
+  const handleDeleteStaff = async (staffId: string) => {
+    if (confirm("Are you sure you want to delete this staff member?")) {
+      try {
+        await fetch("/api/staff", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: staffId }),
+        });
+        fetchData();
+      } catch (err) {
+        console.error("Failed to delete staff:", err);
+        alert("Failed to delete staff member");
+      }
+    }
+  };
+
+  const handleToggleStatus = async (staffId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "Active" ? "Inactive" : "Active";
+    try {
+      await fetch("/api/staff", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: staffId, status: newStatus }),
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Failed to update status:", err);
+      alert("Failed to update staff status");
+    }
+  };
+
   if (loading) return <div className="section container">Loading...</div>;
 
   return (
@@ -77,16 +108,22 @@ export default function StaffPage() {
               <h3 style={{ marginBottom: '0.5rem' }}>{member.name}</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{member.role}</p>
               <p style={{ marginBottom: '1rem' }}>{member.email}</p>
-              <div className="flex justify-between items-center" style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
-                <span style={{ 
-                  padding: '0.2rem 0.5rem', 
-                  borderRadius: '0.5rem', 
-                  background: member.status === 'Active' ? '#dcfce7' : '#f1f5f9',
-                  color: member.status === 'Active' ? '#166534' : '#64748b'
-                }}>
-                  {member.status}
-                </span>
-                <span>{member.jobsCompleted || 0} Jobs</span>
+              <div style={{ fontSize: '0.9rem', marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ 
+                    padding: '0.2rem 0.5rem', 
+                    borderRadius: '0.5rem', 
+                    background: member.status === 'Active' ? '#dcfce7' : '#f1f5f9',
+                    color: member.status === 'Active' ? '#166534' : '#64748b',
+                    cursor: 'pointer'
+                  }} onClick={() => handleToggleStatus(member.id, member.status)}>
+                    {member.status}
+                  </span>
+                  <span>{member.jobsCompleted || 0} Jobs</span>
+                </div>
+                {member.performanceRating > 0 && (
+                  <p style={{ margin: '0.25rem 0', color: 'var(--text-muted)' }}>⭐ Rating: {member.performanceRating.toFixed(1)}/5</p>
+                )}
               </div>
               
               {worker ? (
@@ -101,11 +138,20 @@ export default function StaffPage() {
                     setIsWorkerModalOpen(true);
                   }}
                   className="btn btn-secondary"
-                  style={{ width: '100%', fontSize: '0.875rem' }}
+                  style={{ width: '100%', fontSize: '0.875rem', marginBottom: '0.5rem' }}
                 >
                   <Key size={16} /> Create Worker Login
                 </button>
               )}
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  onClick={() => handleDeleteStaff(member.id)}
+                  className="btn btn-secondary"
+                  style={{ flex: 1, fontSize: '0.875rem', background: '#fee2e2', color: '#991b1b' }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
             </div>
           );
         })}

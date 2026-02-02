@@ -32,7 +32,11 @@ export async function POST(request: Request) {
     const newBooking = {
       id: Date.now().toString(),
       ...body,
-      status: 'Pending', // Pending, Confirmed, Completed
+      status: 'Pending', // Pending, Confirmed, On Way, Done, Completed
+      paymentMethod: body.paymentMethod || 'cash', // cash, card, etc
+      paymentStatus: 'Pending', // Pending, Paid, Failed
+      assignedTo: body.assignedTo || null,
+      notificationSent: false,
       createdAt: new Date().toISOString(),
     };
     
@@ -54,10 +58,10 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { id, status } = body;
+    const { id, ...updates } = body;
     
-    if (!id || !status) {
-       return NextResponse.json({ error: 'Missing id or status' }, { status: 400 });
+    if (!id) {
+       return NextResponse.json({ error: 'Missing id' }, { status: 400 });
     }
 
     const bookings = await getBookings();
@@ -67,7 +71,7 @@ export async function PUT(request: Request) {
        return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
     
-    bookings[index].status = status;
+    bookings[index] = { ...bookings[index], ...updates };
     await saveBookings(bookings);
     
     return NextResponse.json(bookings[index]);

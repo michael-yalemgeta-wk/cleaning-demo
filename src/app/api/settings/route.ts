@@ -9,7 +9,19 @@ async function getSettings() {
     const data = await fs.readFile(DATA_FILE, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
-    return {};
+    return {
+      paymentMethods: {
+        cash: true,
+        card: false,
+        online: false,
+        bank_transfer: false,
+      },
+      disabledDays: [],
+      notificationSettings: {
+        sameDay: true,
+        emailOnBooking: true,
+      },
+    };
   }
 }
 
